@@ -27,9 +27,12 @@ namespace GameArea
             ecb.Playback(state.EntityManager);
             ecb.Dispose();
 
-            foreach (var (area, hexes) in SystemAPI.Query<RefRO<GameAreaData>, DynamicBuffer<HexCell>>())
+            foreach (var (area, entity) in SystemAPI.Query<RefRO<GameAreaData>>()
+                         .WithAll<HexCell>()
+                         .WithEntityAccess())
             {
-                Rebuild(in area.ValueRO, hexes);
+                var hexes = SystemAPI.GetBuffer<HexCell>(entity);
+                Rebuild(in area.ValueRO, ref hexes);
             }
         }
 
@@ -39,7 +42,7 @@ namespace GameArea
         }
 
         [BurstCompile]
-        private static void Rebuild(in GameAreaData area, DynamicBuffer<HexCell> hexes)
+        private static void Rebuild(in GameAreaData area, ref DynamicBuffer<HexCell> hexes)
         {
             hexes.Clear();
 

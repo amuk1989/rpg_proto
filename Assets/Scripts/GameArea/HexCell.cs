@@ -3,7 +3,7 @@ using Unity.Mathematics;
 
 namespace GameArea
 {
-    [InternalBufferCapacity(0)]
+    [InternalBufferCapacity(8)]
     public struct HexCell : IBufferElementData
     {
         public int2 Coord;
