@@ -12,7 +12,19 @@ globs: Assets/Scripts/GameArea/**/*
 
 ## Правила архитектуры
 - Наследники Monobehavior реализуются только в крайнем случае и не должны содержать сложной логики
-
+- Authoring для префаба — `MonoBehaviour` с суффиксом `Authoring`, приватным `[SerializeField]` полем `_prefab`; Baker — приватный вложенный класс внутри Authoring
 
 ## Примеры правильного кода
-[Сюда можно вставить короткий каноничный сниппет]
+```csharp
+public class GameAreaBlock : MonoBehaviour
+{
+    private class AreaBlockBaker : Baker<GameAreaBlock>
+    {
+        public override void Bake(GameAreaBlock authoring)
+        {
+            var entity = GetEntity(authoring, TransformUsageFlags.Dynamic);
+            AddComponent(entity, new AreaBlockPrefabTag());
+        }
+    }
+}
+```

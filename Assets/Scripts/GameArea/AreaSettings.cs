@@ -6,7 +6,7 @@ namespace GameArea
     [CreateAssetMenu(fileName = "AreaSettings", menuName = "Settings/AreaSettings", order = 0)]
     public class AreaSettings : ScriptableObject
     {
-        [SerializeField] private Reference<AreaBlock> _blockPrefab;
-        public Reference<AreaBlock> BlockPrefab => _blockPrefab;
+        [SerializeField] private Reference<GameAreaBlock> _blockPrefab;
+        public Reference<GameAreaBlock> BlockPrefab => _blockPrefab;
     }
 }
