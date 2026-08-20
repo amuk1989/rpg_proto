@@ -1,4 +1,3 @@
-jsonc
 {
   "$schema": "https://app.kilo.ai/config.json", // Включает автодополнение настроек
   "instructions": [
