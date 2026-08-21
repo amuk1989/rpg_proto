@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="game-area-creator-panel" style="position: absolute; bottom: 20px; left: 20px; background-color: rgba(0,0,0,0.7); padding: 16px; border-radius: 8px; min-width: 220px;">
+        <ui:Label text="Create Game Area" style="font-size: 14px; color: white; -unity-font-style: bold; margin-bottom: 12px;" />
+
+        <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 8px;">
+            <ui:Label text="Width" style="color: white; width: 60px;" />
+            <ui:FloatField name="field-width" value="10" style="flex-grow: 1;" />
+        </ui:VisualElement>
+
+        <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 8px;">
+            <ui:Label text="Height" style="color: white; width: 60px;" />
+            <ui:FloatField name="field-height" value="10" style="flex-grow: 1;" />
+        </ui:VisualElement>
+
+        <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 16px;">
+            <ui:Label text="Hex Count" style="color: white; width: 60px;" />
+            <ui:IntegerField name="field-hex-count" value="16" style="flex-grow: 1;" />
+        </ui:VisualElement>
+
+        <ui:Button name="btn-create" text="Create" style="height: 32px; font-size: 13px; -unity-font-style: bold;" />
+    </ui:VisualElement>
+</ui:UXML>
