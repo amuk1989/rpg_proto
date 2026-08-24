@@ -16,15 +16,20 @@ globs: Assets/Scripts/GameArea/**/*
 
 ## Примеры правильного кода
 ```csharp
-public class GameAreaBlock : MonoBehaviour
-{
-    private class AreaBlockBaker : Baker<GameAreaBlock>
+public class GameAreaBlockAuthoring : MonoBehaviour
     {
-        public override void Bake(GameAreaBlock authoring)
+        [SerializeField] private GameAreaBlock _prefab;
+
+        class Baker : Baker<GameAreaBlockAuthoring>
         {
-            var entity = GetEntity(authoring, TransformUsageFlags.Dynamic);
-            AddComponent(entity, new AreaBlockPrefabTag());
+            public override void Bake(GameAreaBlockAuthoring authoring)
+            {
+                var entity = GetEntity(TransformUsageFlags.None);
+                AddComponent(entity, new AreaBlockPrefabTag()
+                {
+                    Prefab = GetEntity(authoring._prefab, TransformUsageFlags.Dynamic)
+                });
+            }
         }
     }
-}
 ```

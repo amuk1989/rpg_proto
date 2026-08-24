@@ -4,5 +4,6 @@ namespace GameArea
 {
     public struct AreaBlockPrefabTag : IComponentData
     {
+        public Entity Prefab;
     }
 }

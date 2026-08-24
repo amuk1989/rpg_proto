@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
+using UnityEngine;
 
 namespace GameArea
 {
@@ -41,14 +42,14 @@ namespace GameArea
             if (_pendingAreaQuery.IsEmpty)
                 return;
 
-            Entity prefab = SystemAPI.GetSingletonEntity<AreaBlockPrefabTag>();
+            Entity prefab = SystemAPI.GetSingleton<AreaBlockPrefabTag>().Prefab;
 
             // Наследуем rotation/scale префаба
             LocalTransform prefabTransform = SystemAPI.HasComponent<LocalTransform>(prefab)
                 ? SystemAPI.GetComponent<LocalTransform>(prefab)
                 : LocalTransform.Identity;
 
-            var ecb = new EntityCommandBuffer(Allocator.Temp);
+            using var ecb = new EntityCommandBuffer(Allocator.Temp);
 
             foreach (var (_, entity) in SystemAPI.Query<RefRO<GameAreaData>>()
                          .WithAll<HexCell>()
@@ -66,7 +67,7 @@ namespace GameArea
                     {
                         Position = hex.Position,
                         Rotation = prefabTransform.Rotation,
-                        Scale = prefabTransform.Scale
+                        Scale = prefabTransform.Scale * hex.Size * 2f,
                     });
                 }
 
@@ -74,7 +75,6 @@ namespace GameArea
             }
 
             ecb.Playback(state.EntityManager);
-            ecb.Dispose();
         }
     }
 }
