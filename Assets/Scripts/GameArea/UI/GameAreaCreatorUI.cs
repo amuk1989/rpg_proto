@@ -97,6 +97,8 @@ namespace GameArea.UI
 
             Debug.Log(
                 $"[GameAreaCreatorUI] Создана GameArea entity {entity}: Size=({width},{height}), HexCount={hexCount}");
+
+            gameObject.SetActive(false);
         }
     }
 }

@@ -109,9 +109,33 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -7098042536458105381, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5ce427fe7aab143da95366e0d77fcf4f, type: 2}
     - target: {fileID: 919132149155446097, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
       propertyPath: m_Name
       value: ImageToStl.com_Platform.stp
+      objectReference: {fileID: 0}
+    - target: {fileID: 8630182533373557982, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 8630182533373557982, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 8630182533373557982, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 8630182533373557982, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8630182533373557982, guid: 79201ef2088119b43aac58a181fe2780, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:

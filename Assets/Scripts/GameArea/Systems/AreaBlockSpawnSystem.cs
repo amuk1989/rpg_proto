@@ -67,7 +67,7 @@ namespace GameArea
                     {
                         Position = hex.Position,
                         Rotation = prefabTransform.Rotation,
-                        Scale = prefabTransform.Scale * hex.Size * 2f,
+                        Scale = prefabTransform.Scale * hex.Size * 1.9f,
                     });
                 }
 
