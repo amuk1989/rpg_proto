@@ -1,0 +1,6 @@
+{
+  "$schema": "https://app.kilo.ai/config.json", // Включает автодополнение настроек
+  "instructions": [
+    ".kilo/rules/game_area.md" // Указываем путь к созданному файлу правил
+    ]
+}
