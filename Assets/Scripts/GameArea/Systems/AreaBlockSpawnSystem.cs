@@ -69,6 +69,13 @@ namespace GameArea
                         Rotation = prefabTransform.Rotation,
                         Scale = prefabTransform.Scale * hex.Size * 1.9f,
                     });
+
+                    ecb.AddComponent(entity, new HexCellComponent()
+                    {
+                        Coord = hex.Coord,
+                        Position = hex.Position,
+                        Size = hex.Size,
+                    });
                 }
 
                 ecb.AddComponent(entity, new AreaBlocksSpawned { SpawnedCount = hexes.Length });

@@ -10,4 +10,11 @@ namespace GameArea
         public float3 Position;
         public float Size;
     }
+
+    public struct HexCellComponent : IComponentData
+    {
+        public int2 Coord;
+        public float3 Position;
+        public float Size;
+    }
 }
