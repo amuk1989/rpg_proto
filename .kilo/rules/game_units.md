@@ -1,11 +1,12 @@
 # Вы — ведущий архитектор модуля GameUnits (Unity DOTS)
 
 ## Роль и контекст
-Вы специализированный агент, отвечающий за поддержку, рефакторинг и написание кода внутри папки `/Assets/Scripts/GameUnits/`. Модуль отвечает за хранение данных юнитов и их размещение на гексогональной сетке `GameArea` при старте сцены.
+Вы специализированный агент, отвечающий за поддержку, рефакторинг и написание кода внутри папки `/Assets/Scripts/GameUnits/`. Модуль отвечает за хранение данных юнитов, их начальное размещение на гексогональной сетке `GameArea` при старте сцены и визуализацию юнитов.
 
 ## Спецификация технологий
 - Проект создаётся на базе Unity DOTS (Data-Oriented Technology Stack).
-- Модуль хранит только данные юнитов (ID юнита, ID гексагона через `int2`).
+- Модуль хранит данные юнитов (ID юнита, ID гексагона через `int2`).
+- Модуль также стоитит визуализацию юнитов — инстанцирование GameObject-префаба для каждой сущности с `UnitComponent`.
 - Зависимость от `GameArea` — использование `int2` координат из `HexCell`.
 
 ## Архитектурные правила
@@ -20,151 +21,100 @@
 
 ### 3. Шаблон Authoring & Baker
 - Компонент Authoring для префаба — `MonoBehaviour` с обязательным суффиксом `Authoring`.
-- Внутри должно быть приватное поле `[SerializeField] private List<UnitData> _initialUnits;`.
-  - Тип `UnitData` определяется как public struct с приватным сериализуемым списком.
-- Компонент `Baker` должен быть реализован как **приватный вложенный класс** (`private class ... : Baker<...>`) внутри самого класса Authoring.
+- Вложенный Baker должен быть **приватным вложенным классом** (`private class ... : Baker<...>`) внутри класса Authoring.
+- Или используется `[DisallowMultipleComponent]` на классе Authoring.
+
+#### 3.1 UnitPlacementAuthoring (список начальных юнитов)
+- Внутреннее поле: `[SerializeField] private List<UnitData> _initialUnits;`
+- Baker: `GetEntity(TransformUsageFlags.None)` → `AddComponent(UnitPlacementTag)` → `AddBuffer<UnitData>` с копированием из `authoring._initialUnits`.
+
+#### 3.2 GameUnitVisualPrefabAuthoring (префаб визуализации)
+- Внутреннее поле: `[SerializeField] private GameObject _prefab;`
+- Baker: `GetEntity(authoring._prefab, TransformUsageFlags.Dynamic)` → `GetEntity(TransformUsageFlags.None)` → `AddComponent(UnitVisualPrefabTag { Prefab = prefabEntity })`.
 
 ### 4. Компоненты
-- Компоненты — `IComponentData` для сущностей, `IBufferElementData` для коллекций.
+
+#### IComponentData (теги и данные)
+| Компонент | Поля | Назначение |
+|-----------|------|------------|
+| `UnitPlacementTag` | — | Тег сущности-контейнера с `DynamicBuffer<UnitData>` |
+| `UnitCreateFinished` | — | Маркер: размещение юнитов обработано |
+| `UnitComponent` | `int UnitID`, `int2 Position` | Сущность юнита (главный компонент данных) |
+| `UnitVisualPrefabTag` | `Entity Prefab` | Синглтон: ссылка на Entity-префаб визуализации |
+| `UnitVisualTag` | — | Тег сущности-юнита: визуал уже создан (защита от дублирования) |
+
+#### IBufferElementData (буферные данные)
+| Компонент | Поля | Назначение |
+|-----------|------|------------|
+| `UnitData` | `int UnitID`, `int2 Position` | Данные юнита для `DynamicBuffer` в `UnitPlacementTag`-сущности |
+| `UnitVisualInstance` | `Entity VisualEntity` | Связь юнита с его визуальной ECS-сущностью (опционально) |
+
+**Правила компонентов:**
 - Нет `[GenerateAuthoringComponent]` — все компоненты пишутся вручную.
-- `UnitComponent`: структура с `int UnitID` и `int2 Position`.
-- `UnitData`: `IBufferElementData` для передачи данных из редактора в систему.
-- Теги (например, `UnitPlacementTag`, `UnitCreateFinished`) — пустые `IComponentData`.
+- Текстовые комментарии с `/// <summary>` обязательны.
+- Теги — пустые структуры без полей.
 
 ### 5. Бейкеры
-- Бейкер — класс, наследующий `Baker<TAuthoringType>`, с методом `Bake(TAuthoringType authoring)`.
-- Для генерации Entity использовать `GetEntity(TransformUsageFlags.None)`.
+- Бейкер — приватный вложенный класс, наследующий `Baker<TAuthoringType>`, с методом `Bake(TAuthoringType authoring)`.
+- Для генерации Entity использовать `GetEntity(TransformUsageFlags.None)` / `GetEntity(TransformUsageFlags.Dynamic)`.
 - Для добавления компонентов использовать `AddComponent(entity, new ...)`.
 - Для добавления буферов использовать `AddBuffer<T>(entity)` и заполнять их в цикле.
+- Для конвертации GameObject→Entity использовать `GetEntity(authoring._prefab, TransformUsageFlags.Dynamic)`.
 
 ### 6. Системы
 - Системы реализуются как `partial struct ... : ISystem` с атрибутом `[BurstCompile]`.
 - Используются внутри `SimulationSystemGroup` через `[UpdateInGroup(typeof(SimulationSystemGroup))]`.
-- В `OnCreate` используется `state.RequireForUpdate(query)` для требования компонентов.
-- В `OnUpdate` используется `_query.IsEmpty` для проверки доступности query.
-- ECB-паттерн: `using var ecb = new EntityCommandBuffer(Allocator.Temp)`, затем `ecb.Playback(state.EntityManager)`.
-- Для доступа к буферам использовать `SystemAPI.GetBufferLookup<T>(false)` и индексацию `handle[entity]`.
-- Для итерации по компонентам: `SystemAPI.Query<RefRO<T>>()...WithEntityAccess()`.
+
+#### Порядок обновления систем
+```
+UnitCreateSystem        (создаёт сущности юнитов из UnitData)
+    ↓
+GameUnitVisualSystem    (инстанцирует визуал для каждого UnitComponent)
+```
+
+#### UnitCreateSystem
+- `OnCreate`: Query с `UnitPlacementTag`, без `UnitCreateFinished`. `state.RequireForUpdate(query)`.
+- `OnUpdate`:
+  - `using var ecb = new EntityCommandBuffer(Allocator.Temp)`.
+  - `var unitDataHandle = SystemAPI.GetBufferLookup<UnitData>(false)`.
+  - `foreach (var (tag, entity) in SystemAPI.Query<RefRO<UnitPlacementTag>>().WithNone<UnitCreateFinished>().WithEntityAccess())`.
+  - Проверка буфера: `SystemAPI.HasBuffer<UnitData>(entity)`.
+  - Получение буфера: `var bufferRef = unitDataHandle[entity]`.
+  - Создание Entity: `var unit = ecb.CreateEntity()` → `ecb.SetComponent(unit, new UnitComponent { ... })`.
+  - Маркер завершения: `ecb.AddComponent(entity, new UnitCreateFinished())`.
+  - Очистка буфера: `bufferRef.Clear()`.
+  - `ecb.Playback(state.EntityManager)`.
+
+#### GameUnitVisualSystem
+- Атрибуты: `[BurstCompile]`, `[UpdateInGroup(typeof(SimulationSystemGroup))]`, `[UpdateAfter(typeof(UnitCreateSystem))]`.
+- `OnCreate`: `state.RequireForUpdate<UnitVisualPrefabTag>()`. Query: `UnitComponent` + без `UnitVisualTag`. `_pendingQuery` в private-поле.
+- `OnUpdate`:
+  - Проверка пустоты: `if (_pendingQuery.IsEmpty) return;`
+  - Получение префаба-синглтона: `Entity prefab = SystemAPI.GetSingleton<UnitVisualPrefabTag>().Prefab;`
+  - ECB: `using var ecb = new EntityCommandBuffer(Allocator.Temp);`
+  - Итерация: `foreach (var (unit, entity) in SystemAPI.Query<RefRO<UnitComponent>>().WithNone<UnitVisualTag>().WithEntityAccess())`
+  - Позиция: `unit.ValueRO.Position.x` → `worldPositionX`, `unit.ValueRO.Position.y` → `worldPositionZ`
+  - Инстанцирование: `Entity visual = ecb.Instantiate(prefab);`
+  - Трансформ: `ecb.SetComponent(visual, new LocalTransform { Position = new float3(worldPositionX, 0f, worldPositionZ), Rotation = quaternion.identity, Scale = 1f });`
+  - Теги: `ecb.AddComponent<UnitVisualTag>(entity);`
+  - Буфер визуала: `if (SystemAPI.HasBuffer<UnitVisualInstance>(entity)) { var buffer = SystemAPI.GetBuffer<UnitVisualInstance>(entity); buffer.Add(new UnitVisualInstance { VisualEntity = visual }); }`
+  - `ecb.Playback(state.EntityManager);`
+
+#### Общие правила для всех систем
 - Проверка наличия буфера: `SystemAPI.HasBuffer<T>(entity)`.
+- Использование ECB-паттерна: `using var ecb = new EntityCommandBuffer(Allocator.Temp)` → `ecb.Playback(state.EntityManager)`.
+- Запрос component-by-value с entity в foreach: `(unit, entity)` деструктуризация через `WithEntityAccess()`.
+- Проверка отсутствия компонента: `.WithNone<T>()`.
+- Метод `OnDestroy` всегда пустой или с заглушкой.
 
 ### 7. Структурные изменения
 - Создание сущности: `ecb.CreateEntity()`.
-- Добавление компонента: `ecb.AddComponent(entity, new ...)`.
+- Добавление компонента: `ecb.AddComponent(entity, new ...)` или `ecb.SetComponent(entity, new ...)`.
 - Очистка буфера: `bufferRef.Clear()` вместо удаления.
-- Удаление буфера/компонента: `ecb.RemoveBuffer<T>(entity)`, `ecb.RemoveComponent()`.
+- Инстанцирование префаба: `ecb.Instantiate(prefab)`.
 
-## Примеры реализации
-
-### Пример UnitComponent
-```csharp
-using Unity.Entities;
-using Unity.Mathematics;
-
-namespace GameUnits
-{
-    public struct UnitComponent : IComponentData
-    {
-        public int UnitID;
-        public int2 Position;
-    }
-}
-```
-
-### Пример Authoring + Baker
-```csharp
-using System.Collections.Generic;
-using Unity.Entities;
-using UnityEngine;
-
-namespace GameUnits
-{
-    public partial class UnitPlacementAuthoring : MonoBehaviour
-    {
-        [SerializeField] private List<UnitData> _initialUnits;
-
-        private class UnitPlacementBaker : Baker<UnitPlacementAuthoring>
-        {
-            public override void Bake(UnitPlacementAuthoring authoring)
-            {
-                var entity = GetEntity(TransformUsageFlags.None);
-                AddComponent(entity, new UnitPlacementTag());
-
-                if (authoring._initialUnits != null)
-                {
-                    var buffer = AddBuffer<UnitData>(entity);
-                    for (int i = 0; i < authoring._initialUnits.Count; i++)
-                    {
-                        buffer.Add(authoring._initialUnits[i]);
-                    }
-                }
-            }
-        }
-    }
-}
-```
-
-### Пример UnitCreateSystem
-```csharp
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
-
-namespace GameUnits
-{
-    [BurstCompile]
-    [UpdateInGroup(typeof(SimulationSystemGroup))]
-    public partial struct UnitCreateSystem : ISystem
-    {
-        [BurstCompile]
-        public void OnCreate(ref SystemState state)
-        {
-            var query = SystemAPI.QueryBuilder()
-                .WithAll<UnitPlacementTag>()
-                .WithNone<UnitCreateFinished>()
-                .Build();
-            state.RequireForUpdate(query);
-        }
-
-        [BurstCompile]
-        public void OnDestroy(ref SystemState state)
-        {
-        }
-
-        public void OnUpdate(ref SystemState state)
-        {
-            using var ecb = new EntityCommandBuffer(Allocator.Temp);
-
-            var unitDataHandle = SystemAPI.GetBufferLookup<UnitData>(false);
-
-            foreach (var (tag, entity) in SystemAPI.Query<RefRO<UnitPlacementTag>>()
-                         .WithNone<UnitCreateFinished>()
-                         .WithEntityAccess())
-            {
-                if (!SystemAPI.HasBuffer<UnitData>(entity))
-                    continue;
-
-                var bufferRef = unitDataHandle[entity];
-                if (bufferRef.Length == 0)
-                    continue;
-
-                for (var i = 0; i < bufferRef.Length; i++)
-                {
-                    var data = bufferRef[i];
-
-                    var unit = ecb.CreateEntity();
-                    ecb.SetComponent(unit, new UnitComponent
-                    {
-                        UnitID   = data.UnitID,
-                        Position = data.Position
-                    });
-                }
-
-                ecb.AddComponent(entity, new UnitCreateFinished());
-                bufferRef.Clear();
-            }
-
-            ecb.Playback(state.EntityManager);
-        }
-    }
-}
-```
+### 8. Пространство имён и организация
+- Всё в пространстве имён `GameUnits`.
+- Все типы — `public`.
+- Комментарии с `/// <summary>` обязательны для всех `IComponentData`, `IBufferElementData`, систем и авторинг-классов.
+- Мета-файлы (`.meta`) — не редактировать.
