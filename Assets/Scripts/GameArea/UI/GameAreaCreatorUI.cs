@@ -242,7 +242,7 @@ namespace GameArea.UI
                 Debug.Log($"[GameAreaCreatorUI] Created {(_units.Count > 0 ? _units.Count : 0)} unit(s) on entity {placementEntity}");
             }
 
-            gameObject.SetActive(false);
+            // gameObject.SetActive(false);
         }
     }
 }
