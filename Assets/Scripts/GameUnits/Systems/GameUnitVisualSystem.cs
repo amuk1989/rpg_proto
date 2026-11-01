@@ -12,7 +12,7 @@ namespace GameUnits
     ///     и устанавливает соответствующую World-позицию, совпадающую с позицией
     ///     hex-ячейки на игровом поле.
     ///
-    ///     Конвертация int2(offsetCol, offsetRow) в float3(worldPosition)
+    ///     Конвертация int2(col, row) в float3(worldPosition).
     ///     выполняется с учётом фактических размеров поля из GameAreaData.
     /// </summary>
     [BurstCompile]
@@ -26,11 +26,12 @@ namespace GameUnits
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<UnitVisualPrefabTag>();
-
             _pendingQuery = SystemAPI.QueryBuilder()
                 .WithAll<UnitComponent>()
                 .WithNone<UnitVisualTag>()
                 .Build();
+
+            state.RequireForUpdate(_pendingQuery);
         }
 
         [BurstCompile]

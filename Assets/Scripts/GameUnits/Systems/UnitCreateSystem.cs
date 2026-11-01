@@ -36,8 +36,8 @@ namespace GameUnits
             var unitDataHandle = SystemAPI.GetBufferLookup<UnitData>(false);
 
             foreach (var (tag, entity) in SystemAPI.Query<RefRO<UnitPlacementTag>>()
-                         .WithNone<UnitCreateFinished>()
-                         .WithEntityAccess())
+                         .WithEntityAccess()
+                         .WithNone<UnitCreateFinished>())
             {
                 if (!SystemAPI.HasBuffer<UnitData>(entity))
                     continue;
@@ -52,7 +52,7 @@ namespace GameUnits
                     var data = bufferRef[i];
 
                     var unit = ecb.CreateEntity();
-                    ecb.SetComponent(unit, new UnitComponent
+                    ecb.AddComponent(unit, new UnitComponent
                     {
                         UnitID   = data.UnitID,
                         Position = data.Position

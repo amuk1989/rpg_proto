@@ -120,6 +120,21 @@ namespace GameArea.UI
             RenderUnitList();
 
             Debug.Log($"[GameAreaCreatorUI] Added unit #{_units.Count}: ID={unitId}, Pos=({col},{row})");
+
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null)
+            {
+                Debug.LogError("[GameAreaCreatorUI] DefaultGameObjectInjectionWorld не найден.");
+                return;
+            }
+
+            var em = world.EntityManager;
+
+            // 1. Game Area
+            var entity = em.CreateEntity();
+            em.AddComponentData(entity, new UnitPlacementTag());
+            var buffer = em.AddBuffer<UnitData>(entity);
+            buffer.Add(unit);
         }
 
         private void RenderUnitList()
